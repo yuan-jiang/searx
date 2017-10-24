@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[packages]
+certifi = "*"
+flask = "*"
+flask-babel = "*"
+lxml = "*"
+idna = "*"
+pygments = "*"
+pyopenssl = "*"
+python-dateutil = "*"
+pyyaml = "*"
+requests = "*"
+gunicorn = "*"
+
+[requires]
+python_version = "2.7"
