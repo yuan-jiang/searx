@@ -7,6 +7,7 @@ import re
 from babel.dates import format_date
 from codecs import getincrementalencoder
 from imp import load_source
+from numbers import Number
 from os.path import splitext, join
 from random import choice
 import sys
@@ -29,6 +30,9 @@ except:
 if sys.version_info[0] == 3:
     unichr = chr
     unicode = str
+    IS_PY2 = False
+else:
+    IS_PY2 = True
 
 logger = logger.getChild('utils')
 
@@ -159,19 +163,22 @@ class UnicodeWriter:
         self.encoder = getincrementalencoder(encoding)()
 
     def writerow(self, row):
-        unicode_row = []
-        for col in row:
-            if type(col) == str or type(col) == unicode:
-                unicode_row.append(col.encode('utf-8').strip())
-            else:
-                unicode_row.append(col)
-        self.writer.writerow([x.decode('utf-8') if hasattr(x, 'decode') else x for x in unicode_row])
+        if IS_PY2:
+            row = [s.encode("utf-8") if hasattr(s, 'encode') else s for s in row]
+        self.writer.writerow(row)
         # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue().strip('\x00')
+        data = self.queue.getvalue()
+        if IS_PY2:
+            data = data.decode("utf-8")
+        else:
+            data = data.strip('\x00')
         # ... and reencode it into the target encoding
         data = self.encoder.encode(data)
         # write to the target stream
-        self.stream.write(data.decode('utf-8'))
+        if IS_PY2:
+            self.stream.write(data)
+        else:
+            self.stream.write(data.decode("utf-8"))
         # empty queue
         self.queue.truncate(0)
 
@@ -330,3 +337,14 @@ def new_hmac(secret_key, url):
         return hmac.new(bytes(secret_key), url, hashlib.sha256).hexdigest()
     else:
         return hmac.new(bytes(secret_key, 'utf-8'), url, hashlib.sha256).hexdigest()
+
+
+def to_string(obj):
+    if isinstance(obj, basestring):
+        return obj
+    if isinstance(obj, Number):
+        return unicode(obj)
+    if hasattr(obj, '__str__'):
+        return obj.__str__()
+    if hasattr(obj, '__repr__'):
+        return obj.__repr__()
