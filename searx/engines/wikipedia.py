@@ -13,6 +13,7 @@
 from json import loads
 from lxml.html import fromstring
 from searx.url_utils import quote, urlencode
+from searx.utils import match_language
 
 # search-url
 base_url = u'https://{language}.wikipedia.org/'
@@ -30,13 +31,10 @@ supported_languages_url = 'https://meta.wikimedia.org/wiki/List_of_Wikipedias'
 
 # set language in base_url
 def url_lang(lang):
-    lang = lang.split('-')[0]
-    if lang not in supported_languages:
-        language = 'en'
-    else:
-        language = lang
-
-    return language
+    lang_pre = lang.split('-')[0]
+    if lang_pre == 'all' or lang_pre not in supported_languages and lang_pre not in language_aliases:
+        return 'en'
+    return match_language(lang, supported_languages, language_aliases).split('-')[0]
 
 
 # do search-request

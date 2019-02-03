@@ -9,13 +9,12 @@ class TestDuckduckgoImagesEngine(SearxTestCase):
 
     def test_request(self):
         duckduckgo_images.supported_languages = ['de-CH', 'en-US']
-
         query = 'test_query'
         dicto = defaultdict(dict)
         dicto['is_test'] = True
         dicto['pageno'] = 1
         dicto['safesearch'] = 0
-        dicto['language'] = 'en-US'
+        dicto['language'] = 'all'
         params = duckduckgo_images.request(query, dicto)
         self.assertIn('url', params)
         self.assertIn(query, params['url'])

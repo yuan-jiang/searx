@@ -4,6 +4,8 @@ searx
 A privacy-respecting, hackable `metasearch
 engine <https://en.wikipedia.org/wiki/Metasearch_engine>`__.
 
+Pronunciation: səːks
+
 List of `running
 instances <https://github.com/asciimoo/searx/wiki/Searx-instances>`__.
 
@@ -38,7 +40,7 @@ tracker <https://github.com/asciimoo/searx/issues>`__.
 More about searx
 ~~~~~~~~~~~~~~~~
 
--  `ohloh <https://www.ohloh.net/p/searx/>`__
+-  `openhub <https://www.openhub.net/p/searx/>`__
 -  `twitter <https://twitter.com/Searx_engine>`__
 -  IRC: #searx @ freenode
 

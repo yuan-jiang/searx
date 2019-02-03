@@ -7,6 +7,8 @@ from searx.testing import SearxTestCase
 class TestQwantEngine(SearxTestCase):
 
     def test_request(self):
+        qwant.supported_languages = ['en-US', 'fr-CA', 'fr-FR']
+        qwant.language_aliases = {}
         query = 'test_query'
         dicto = defaultdict(dict)
         dicto['pageno'] = 0
@@ -19,14 +21,12 @@ class TestQwantEngine(SearxTestCase):
         self.assertIn('qwant.com', params['url'])
         self.assertIn('fr_fr', params['url'])
 
-        dicto['language'] = 'en-US'
+        dicto['language'] = 'all'
         qwant.categories = ['news']
         params = qwant.request(query, dicto)
         self.assertFalse('fr' in params['url'])
-        self.assertIn('en_us', params['url'])
         self.assertIn('news', params['url'])
 
-        qwant.supported_languages = ['en', 'fr-FR', 'fr-CA']
         dicto['language'] = 'fr'
         params = qwant.request(query, dicto)
         self.assertIn('fr_fr', params['url'])

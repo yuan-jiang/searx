@@ -1,23 +1,15 @@
 #!/bin/sh
 
 BASE_DIR="$(dirname -- "`readlink -f -- "$0"`")"
-export PATH="$BASE_DIR/node_modules/.bin":$PATH
 
-# the script can be sourced to update the PATH
-# see https://stackoverflow.com/questions/2683279/how-to-detect-if-a-script-is-being-sourced
-if [ $_ != $0 ]; then
-    unset BASE_DIR
-    # sourced : exit now
-    return
-fi
+cd -- "$BASE_DIR"
+set -e
 
 # subshell
 PYTHONPATH="$BASE_DIR"
 SEARX_DIR="$BASE_DIR/searx"
 ACTION="$1"
 
-cd -- "$BASE_DIR"
-set -e
 
 #
 # Python
@@ -56,7 +48,7 @@ install_geckodriver() {
 
     if [ -z "$1" ]; then
         if [ -z "$VIRTUAL_ENV" ]; then
-            echo "geckodriver can't be installed because VIRTUAL_ENV is not set, you should download it from\n  $GECKODRIVER_URL"
+            printf "geckodriver can't be installed because VIRTUAL_ENV is not set, you should download it from\n  %s" "$GECKODRIVER_URL"
             exit
         else
             GECKODRIVER_DIR="$VIRTUAL_ENV/bin"
@@ -66,7 +58,7 @@ install_geckodriver() {
         mkdir -p -- "$GECKODRIVER_DIR"
     fi
 
-    echo "Installing $GECKODRIVER_DIR/geckodriver from\n  $GECKODRIVER_URL"
+    printf "Installing %s/geckodriver from\n  %s" "$GECKODRIVER_DIR" "$GECKODRIVER_URL"
 
     FILE="`mktemp`"
     wget -qO "$FILE" -- "$GECKODRIVER_URL" && tar xz -C "$GECKODRIVER_DIR" -f "$FILE" geckodriver
@@ -117,7 +109,14 @@ tests() {
 # Web
 #
 
+npm_path_setup() {
+    which npm || (printf 'Error: npm is not found\n'; exit 1)
+    export PATH="$(npm bin)":$PATH
+}
+
 npm_packages() {
+    npm_path_setup
+
     echo '[!] install NPM packages'
     cd -- "$BASE_DIR"
     npm install less@2.7 less-plugin-clean-css grunt-cli
@@ -132,10 +131,14 @@ npm_packages() {
 }
 
 build_style() {
+    npm_path_setup
+
     lessc --clean-css="--s1 --advanced --compatibility=ie9" "$BASE_DIR/searx/static/$1" "$BASE_DIR/searx/static/$2"
 }
 
 styles() {
+    npm_path_setup
+
     echo '[!] Building legacy style'
     build_style themes/legacy/less/style.less themes/legacy/css/style.css
     build_style themes/legacy/less/style-rtl.less themes/legacy/css/style-rtl.css

@@ -34,6 +34,7 @@ search_string = 'search?{query}'\
     '&qlang={lang}'\
     '&ff={safesearch}'\
     '&rxiec={rxieu}'\
+    '&ulse={ulse}'\
     '&rand={rxikd}'  # current unix timestamp
 
 # specific xpath variables
@@ -49,9 +50,12 @@ supported_languages_url = 'https://gigablast.com/search?&rxikd=1'
 def request(query, params):
     offset = (params['pageno'] - 1) * number_of_results
 
-    language = params['language'].replace('-', '_').lower()
-    if language.split('-')[0] != 'zh':
-        language = language.split('-')[0]
+    if params['language'] == 'all':
+        language = 'xx'
+    else:
+        language = params['language'].replace('-', '_').lower()
+        if language.split('-')[0] != 'zh':
+            language = language.split('-')[0]
 
     if params['safesearch'] >= 1:
         safesearch = 1
@@ -64,6 +68,7 @@ def request(query, params):
                                        number_of_results=number_of_results,
                                        rxikd=int(time() * 1000),
                                        rxieu=random.randint(1000000000, 9999999999),
+                                       ulse=random.randint(100000000, 999999999),
                                        lang=language,
                                        safesearch=safesearch)
 

@@ -12,6 +12,7 @@ if version[0] == '3':
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5  # 5 years
 LANGUAGE_CODES = [l[0] for l in languages]
+LANGUAGE_CODES.append('all')
 DISABLED = 0
 ENABLED = 1
 DOI_RESOLVERS = list(settings['doi_resolvers'])
@@ -115,10 +116,6 @@ class SearchLanguageSetting(EnumStringSetting):
                 pass
             elif lang in self.choices:
                 data = lang
-            elif data == 'nb-NO':
-                data = 'no-NO'
-            elif data == 'ar-XA':
-                data = 'ar-SA'
             else:
                 data = self.value
         self.value = data
@@ -268,6 +265,9 @@ class Preferences(object):
                                                                                 'False': False,
                                                                                 'True': True}),
                                    'doi_resolver': MultipleChoiceSetting(['oadoi.org'], choices=DOI_RESOLVERS),
+                                   'oscar-style': EnumStringSetting(
+                                       settings['ui'].get('theme_args', {}).get('oscar_style', 'logicodev'),
+                                       choices=['', 'logicodev', 'logicodev-dark', 'pointhi']),
                                    }
 
         self.engines = EnginesSetting('engines', choices=engines)

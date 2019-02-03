@@ -147,7 +147,8 @@ def search_one_request_safe(engine_name, query, request_params, result_container
         if requests_exception:
             # update continuous_errors / suspend_end_time
             engine.continuous_errors += 1
-            engine.suspend_end_time = time() + min(60, engine.continuous_errors)
+            engine.suspend_end_time = time() + min(settings['search']['max_ban_time_on_fail'],
+                                                   engine.continuous_errors * settings['search']['ban_time_on_fail'])
         else:
             # no HTTP error (perhaps an engine error)
             # anyway, reset the suspend variables
@@ -220,10 +221,6 @@ def get_search_query_from_webapp(preferences, form):
     else:
         query_lang = preferences.get_value('language')
 
-    # provides backwards compatibility for requests using old language default
-    if query_lang == 'all':
-        query_lang = settings['search']['language']
-
     # check language
     if not VALID_LANGUAGE_CODE.match(query_lang):
         raise SearxParameterException('language', query_lang)
@@ -258,8 +255,13 @@ def get_search_query_from_webapp(preferences, form):
     # if engines are calculated from query,
     # set categories by using that informations
     if query_engines and raw_text_query.specific:
-        query_categories = list(set(engine['category']
-                                    for engine in query_engines))
+        additional_categories = set()
+        for engine in query_engines:
+            if 'from_bang' in engine and engine['from_bang']:
+                additional_categories.add('none')
+            else:
+                additional_categories.add(engine['category'])
+        query_categories = list(additional_categories)
 
     # otherwise, using defined categories to
     # calculate which engines should be used

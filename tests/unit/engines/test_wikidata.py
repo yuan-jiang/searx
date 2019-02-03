@@ -11,17 +11,15 @@ class TestWikidataEngine(SearxTestCase):
     def test_request(self):
         query = 'test_query'
         dicto = defaultdict(dict)
-        dicto['language'] = 'en-US'
+        dicto['language'] = 'all'
         params = wikidata.request(query, dicto)
         self.assertIn('url', params)
         self.assertIn(query, params['url'])
         self.assertIn('wikidata.org', params['url'])
-        self.assertIn('en', params['url'])
 
-        dicto['language'] = 'es-ES'
+        dicto['language'] = 'es_ES'
         params = wikidata.request(query, dicto)
         self.assertIn(query, params['url'])
-        self.assertIn('es', params['url'])
 
     # successful cases are not tested here to avoid sending additional requests
     def test_response(self):
@@ -30,6 +28,8 @@ class TestWikidataEngine(SearxTestCase):
         self.assertRaises(AttributeError, wikidata.response, '')
         self.assertRaises(AttributeError, wikidata.response, '[]')
 
+        wikidata.supported_languages = ['en', 'es']
+        wikidata.language_aliases = {}
         response = mock.Mock(text='<html></html>', search_params={"language": "en"})
         self.assertEqual(wikidata.response(response), [])
 
@@ -126,9 +126,10 @@ class TestWikidataEngine(SearxTestCase):
                         <div class="wikibase-statementview-mainsnak">
                             <div>
                                 <div class="wikibase-snakview-value">
-                                    <a href="https://commons.wikimedia.org/wiki/File:image.png">
-                                        image.png
-                                    </a>
+                                    <div class="commons-media-caption">
+                                        <a href="https://commons.wikimedia.org/wiki/File:image.png">image.png</a>
+                                        <br/>2,687 &#215; 3,356; 1.22 MB
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -159,9 +160,10 @@ class TestWikidataEngine(SearxTestCase):
                         <div class="wikibase-statementview-mainsnak">
                             <div>
                                 <div class="wikibase-snakview-value">
-                                    <a href="https://commons.wikimedia.org/wiki/File:icon.png">
-                                        icon.png
-                                    </a>
+                                    <div class="commons-media-caption">
+                                        <a href="https://commons.wikimedia.org/wiki/File:icon.png">icon.png</a>
+                                        <br/>671 &#215; 671; 18 KB</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -182,9 +184,10 @@ class TestWikidataEngine(SearxTestCase):
                         <div class="wikibase-statementview-mainsnak">
                             <div>
                                 <div class="wikibase-snakview-value">
-                                    <a href="https://commons.wikimedia.org/wiki/File:logo.png">
-                                        logo.png
-                                    </a>
+                                    <div class="commons-media-caption">
+                                        <a href="https://commons.wikimedia.org/wiki/File:logo.png">logo.png</a>
+                                        <br/>170 &#215; 170; 1 KB
+                                    </div>
                                 </div>
                             </div>
                         </div>

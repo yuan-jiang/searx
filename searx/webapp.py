@@ -58,16 +58,16 @@ from searx.engines import (
 from searx.utils import (
     UnicodeWriter, highlight_content, html_to_text, get_resources_directory,
     get_static_files, get_result_templates, get_themes, gen_useragent,
-    dict_subset, prettify_url
+    dict_subset, prettify_url, match_language
 )
 from searx.version import VERSION_STRING
-from searx.languages import language_codes
+from searx.languages import language_codes as languages
 from searx.search import SearchWithPlugins, get_search_query_from_webapp
 from searx.query import RawTextQuery
 from searx.autocomplete import searx_bang, backends as autocomplete_backends
 from searx.plugins import plugins
 from searx.plugins.oa_doi_rewrite import get_doi_resolver
-from searx.preferences import Preferences, ValidationException
+from searx.preferences import Preferences, ValidationException, LANGUAGE_CODES
 from searx.answerers import answerers
 from searx.url_utils import urlencode, urlparse, urljoin
 from searx.utils import new_hmac
@@ -133,7 +133,7 @@ if not searx_debug \
 babel = Babel(app)
 
 rtl_locales = ['ar', 'arc', 'bcc', 'bqi', 'ckb', 'dv', 'fa', 'glk', 'he',
-               'ku', 'mzn', 'pnb'', ''ps', 'sd', 'ug', 'ur', 'yi']
+               'ku', 'mzn', 'pnb', 'ps', 'sd', 'ug', 'ur', 'yi']
 
 # used when translating category names
 _category_names = (gettext('files'),
@@ -164,6 +164,9 @@ def get_locale():
     if 'locale' in request.form\
        and request.form['locale'] in settings['locales']:
         locale = request.form['locale']
+
+    if locale == 'zh_TW':
+        locale = 'zh_Hant_TW'
 
     return locale
 
@@ -292,6 +295,9 @@ def image_proxify(url):
     if not request.preferences.get_value('image_proxy'):
         return url
 
+    if url.startswith('data:image/jpeg;base64,'):
+        return url
+
     if settings.get('result_proxy'):
         return proxify(url)
 
@@ -349,9 +355,11 @@ def render(template_name, override_theme=None, **kwargs):
 
     kwargs['safesearch'] = str(request.preferences.get_value('safesearch'))
 
-    kwargs['language_codes'] = language_codes
+    kwargs['language_codes'] = languages
     if 'current_language' not in kwargs:
-        kwargs['current_language'] = request.preferences.get_value('language')
+        kwargs['current_language'] = match_language(request.preferences.get_value('language'),
+                                                    LANGUAGE_CODES,
+                                                    fallback=settings['search']['language'])
 
     # override url_for function in templates
     kwargs['url_for'] = url_for_theme
@@ -587,7 +595,9 @@ def index():
         infoboxes=result_container.infoboxes,
         paging=result_container.paging,
         unresponsive_engines=result_container.unresponsive_engines,
-        current_language=search_query.lang,
+        current_language=match_language(search_query.lang,
+                                        LANGUAGE_CODES,
+                                        fallback=settings['search']['language']),
         base_url=get_base_url(),
         theme=get_current_theme_name(),
         favicons=global_favicons[themes.index(get_current_theme_name())]
@@ -630,8 +640,8 @@ def autocompleter():
     if len(raw_results) <= 3 and completer:
         # get language from cookie
         language = request.preferences.get_value('language')
-        if not language:
-            language = settings['search']['language']
+        if not language or language == 'all':
+            language = 'en'
         else:
             language = language.split('-')[0]
         # run autocompletion
@@ -684,6 +694,7 @@ def preferences():
                              'warn_time': False}
             if e.timeout > settings['outgoing']['request_timeout']:
                 stats[e.name]['warn_timeout'] = True
+            stats[e.name]['supports_selected_language'] = _is_selected_language_supported(e, request.preferences)
 
     # get first element [0], the engine time,
     # and then the second element [1] : the time (the first one is the label)
@@ -712,6 +723,14 @@ def preferences():
                   preferences_url_params=request.preferences.get_as_url_params(),
                   base_url=get_base_url(),
                   preferences=True)
+
+
+def _is_selected_language_supported(engine, preferences):
+    language = preferences.get_value('language')
+    return (language == 'all'
+            or match_language(language,
+                              getattr(engine, 'supported_languages', []),
+                              getattr(engine, 'language_aliases', {}), None))
 
 
 @app.route('/image_proxy', methods=['GET'])
@@ -852,7 +871,7 @@ def config():
                     'safe_search': settings['search']['safe_search'],
                     'default_theme': settings['ui']['default_theme'],
                     'version': VERSION_STRING,
-                    'doi_resolvers': [r for r in search['doi_resolvers']],
+                    'doi_resolvers': [r for r in settings['doi_resolvers']],
                     'default_doi_resolver': settings['default_doi_resolver'],
                     })
 

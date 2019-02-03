@@ -12,9 +12,10 @@
 
 from json import loads
 from lxml import html
-from searx.engines.bing_images import _fetch_supported_languages, supported_languages_url, get_region_code
+from searx.engines.bing_images import _fetch_supported_languages, supported_languages_url
 from searx.engines.xpath import extract_text
 from searx.url_utils import urlencode
+from searx.utils import match_language
 
 
 categories = ['videos']
@@ -47,8 +48,8 @@ def request(query, params):
         'ADLT=' + safesearch_types.get(params['safesearch'], 'DEMOTE')
 
     # language cookie
-    region = get_region_code(params['language'], lang_list=supported_languages)
-    params['cookies']['_EDGE_S'] = 'mkt=' + region + '&F=1'
+    language = match_language(params['language'], supported_languages, language_aliases).lower()
+    params['cookies']['_EDGE_S'] = 'mkt=' + language + '&F=1'
 
     # query and paging
     params['url'] = search_url.format(query=urlencode({'q': query}),
@@ -69,22 +70,11 @@ def response(resp):
     dom = html.fromstring(resp.text)
 
     for result in dom.xpath('//div[@class="dg_u"]'):
-
-        # try to extract the url
-        url_container = result.xpath('.//div[@class="sa_wrapper"]/@data-eventpayload')
-        if len(url_container) > 0:
-            url = loads(url_container[0])['purl']
-        else:
-            url = result.xpath('./a/@href')[0]
-
-            # discard results that do not return an external url
-            # very recent results sometimes don't return the video's url
-            if url.startswith('/videos/search?'):
-                continue
-
-        title = extract_text(result.xpath('./a//div[@class="tl"]'))
-        content = extract_text(result.xpath('.//div[@class="pubInfo"]'))
-        thumbnail = result.xpath('.//div[@class="vthumb"]/img/@src')[0]
+        url = result.xpath('./div[@class="mc_vtvc"]/a/@href')[0]
+        url = 'https://bing.com' + url
+        title = extract_text(result.xpath('./div/a/div/div[@class="mc_vtvc_title"]/@title'))
+        content = extract_text(result.xpath('./div/a/div/div/div/div/text()'))
+        thumbnail = result.xpath('./div/a/div/div/img/@src')[0]
 
         results.append({'url': url,
                         'title': title,
@@ -92,7 +82,6 @@ def response(resp):
                         'thumbnail': thumbnail,
                         'template': 'videos.html'})
 
-        # first page ignores requested number of results
         if len(results) >= number_of_results:
             break
 
