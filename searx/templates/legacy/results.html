@@ -33,8 +33,12 @@
 
     {% if answers %}
     <div id="answers"><span>{{ _('Answers') }}</span>
-        {% for answer in answers %}
-        <span>{{ answer }}</span>
+        {% for answer in answers.values() %}
+            {% if answer.url %}
+            <a href="{{ answer.url }}">{{ answer.answer }}</a>
+            {% else %}
+            <span>{{ answer.answer }}</span>
+            {% endif %}
         {% endfor %}
     </div>
     {% endif %}
@@ -44,8 +48,8 @@
         {% set first = true %}
         {% for suggestion in suggestions %}
         {% if not first %} &bull; {% endif %}<form method="{{ method or 'POST' }}" action="{{ url_for('index') }}">
-            <input type="hidden" name="q" value="{{ suggestion }}">
-            <input type="submit" class="suggestion" value="{{ suggestion }}" />
+            <input type="hidden" name="q" value="{{ suggestion.url }}">
+            <input type="submit" class="suggestion" value="{{ suggestion.title }}" />
         </form>
         {% set first = false %}
         {% endfor %}
